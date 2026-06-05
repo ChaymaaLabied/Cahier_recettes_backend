@@ -1,0 +1,235 @@
+openapi: 3.0.0
+info:
+  title: Cahier de Recettes API
+  description: API pour partager et gerer des recettes de cuisine
+  version: 1.0.0
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Utilisateur:
+      type: object
+      required:
+        - nom
+        - email
+        - motDePasse
+      properties:
+        nom:
+          type: string
+        email:
+          type: string
+        motDePasse:
+          type: string
+
+    Recette:
+      type: object
+      required:
+        - titre
+        - ingredients
+        - etapes
+      properties:
+        titre:
+          type: string
+        ingredients:
+          type: array
+          items:
+            type: string
+        etapes:
+          type: array
+          items:
+            type: string
+        date:
+          type: string
+          format: date-time
+
+    Commentaire:
+      type: object
+      required:
+        - contenu
+      properties:
+        contenu:
+          type: string
+
+paths:
+  /utilisateurs/inscription:
+    post:
+      summary: Creer un compte utilisateur
+      tags:
+        - Utilisateurs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Utilisateur"
+      responses:
+        "201":
+          description: Utilisateur cree
+        "400":
+          description: Donnees invalides ou email deja utilise
+
+  /utilisateurs/connexion:
+    post:
+      summary: Se connecter et obtenir un token JWT
+      tags:
+        - Utilisateurs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - motDePasse
+              properties:
+                email:
+                  type: string
+                motDePasse:
+                  type: string
+      responses:
+        "200":
+          description: Token JWT retourne
+        "401":
+          description: Identifiants incorrects
+
+  /recettes:
+    get:
+      summary: Obtenir toutes les recettes
+      tags:
+        - Recettes
+      parameters:
+        - name: ingredient
+          in: query
+          schema:
+            type: string
+          description: Filtrer par ingredient
+        - name: auteur
+          in: query
+          schema:
+            type: string
+          description: Filtrer par identifiant auteur
+        - name: tri
+          in: query
+          schema:
+            type: string
+            enum: [date, popularite]
+          description: Trier les resultats
+      responses:
+        "200":
+          description: Liste des recettes
+
+    post:
+      summary: Ajouter une nouvelle recette
+      tags:
+        - Recettes
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Recette"
+      responses:
+        "201":
+          description: Recette creee
+        "400":
+          description: Champs obligatoires manquants
+        "401":
+          description: Token manquant ou invalide
+
+  /recettes/{id}:
+    get:
+      summary: Obtenir une recette par son identifiant
+      tags:
+        - Recettes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Recette trouvee
+        "404":
+          description: Recette non trouvee
+
+    put:
+      summary: Modifier une recette
+      tags:
+        - Recettes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Recette"
+      responses:
+        "200":
+          description: Recette mise a jour
+        "403":
+          description: Action non autorisee
+        "404":
+          description: Recette non trouvee
+
+    delete:
+      summary: Supprimer une recette
+      tags:
+        - Recettes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Recette supprimee
+        "403":
+          description: Action non autorisee
+        "404":
+          description: Recette non trouvee
+
+  /recettes/{id}/commentaires:
+    post:
+      summary: Ajouter un commentaire sur une recette
+      tags:
+        - Commentaires
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Commentaire"
+      responses:
+        "201":
+          description: Commentaire ajoute
+        "400":
+          description: Contenu manquant
+        "404":
+          description: Recette non trouvee
